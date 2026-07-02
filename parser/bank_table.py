@@ -15,6 +15,10 @@ from .dates import is_valid_day_month_parts, parse_day_month, parse_statement_da
 DATE_TOKEN = re.compile(r"^\d{1,2}-[A-Za-z]{3}$")
 AMOUNT = re.compile(r"^[\d,]+\.\d{2}$")
 CCY_RE = re.compile(r"^[A-Z]{3}$")
+HSBC_CONTACT_FOOTER = re.compile(
+    r"\s*Banking customers or \(852\)\s*2748\s*8288.*$",
+    re.I,
+)
 
 FOOTER_MARKERS = (
     "Important Notice",
@@ -31,6 +35,8 @@ FOOTER_MARKERS = (
     "Savings Transaction Details",
     "As of",
     "disclose your personal details",
+    "Banking customers",
+    "2748 8288",
 )
 
 SECTION_HEADER_MARKERS = (
@@ -154,6 +160,7 @@ def _ccy_from_row(row_words: list[dict], anchors: dict[str, float]) -> str | Non
 
 
 def _clean_details(details: str) -> str:
+    details = HSBC_CONTACT_FOOTER.sub("", details).strip()
     markers = FOOTER_MARKERS + (
         "Hongkong",
         "Thank you",

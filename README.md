@@ -20,7 +20,7 @@ Drop PDF or CSV files into `statements/`, then:
 python extract.py
 ```
 
-Open `output/transactions.xlsx`.
+Open the latest file in `output/` (e.g. `output/transactions_20260702_194533.xlsx`).
 
 ## Folder layout
 
@@ -40,7 +40,7 @@ hsbc-statements/
 2. Download the monthly **eStatement PDF** or a **CSV** export from transaction search
 3. Copy files into `statements/`
 4. Run `python extract.py`
-5. Open `output/transactions.xlsx`
+5. Open the timestamped workbook in `output/`
 
 To move successfully parsed files out of the inbox:
 
@@ -76,13 +76,31 @@ python extract.py --password 'your_password'
 
 ## Output
 
-`output/transactions.xlsx` includes:
+Each run writes a timestamped workbook to `output/transactions_YYYYMMDD_HHMMSS.xlsx` (unless you pass `--output`).
 
-- **All Transactions** — every row from all input files, combined
-- One sheet per account (when the PDF contains multiple accounts)
-- One sheet per source file
+### Sheets
 
-Columns: Account, Date, Transaction Details, Deposit, Withdrawal, Balance, CCY, Source File
+| Sheet | Included |
+|-------|----------|
+| **All Transactions** | Always — all rows from all input files |
+| **One per account** | Always — HKD Current, Savings, each credit card, etc. |
+| **One per source file** | Only with `--export-statements` |
+
+### Columns
+
+| Column | Description |
+|--------|-------------|
+| Account | Bank account or credit card name |
+| Date | Transaction date (no time component) |
+| Transaction Details | Description from the statement |
+| Deposit | Credits — positive (bank deposits, card payments) |
+| Withdrawal | Debits — positive (bank withdrawals, card charges) |
+| Amount | Signed value — positive for credits, negative for debits |
+| Balance | Running balance where available |
+| CCY | Currency |
+| Source File | Original PDF or CSV filename |
+
+Credit card rows are normalized to the same schema as bank accounts. On **All Transactions**, the earliest B/F Balance row per account has `Amount` set from `Balance`.
 
 ## CLI options
 
@@ -93,9 +111,17 @@ python extract.py --help
 | Option | Description |
 |--------|-------------|
 | `--input DIR` | Input folder (default: `statements/`) |
-| `--output FILE` | Output Excel path (default: `output/transactions.xlsx`) |
+| `--output FILE` | Output Excel path (default: `output/transactions_YYYYMMDD_HHMMSS.xlsx`) |
 | `--password` | PDF password (or use `HSBC_ESTMT_PASSWORD` in `.env`) |
 | `--move-processed` | Move parsed files to `processed/` |
+| `--export-statements` | Add one sheet per source statement file (default: skip) |
+
+Processing prints elapsed time per file:
+
+```
+Processing 2026-01-03_Statement.pdf...
+  OK (2026-01-03_Statement.pdf) — 1.2s
+```
 
 ## Privacy and security
 
