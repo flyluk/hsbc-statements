@@ -1,0 +1,31 @@
+Context: I have an Excel workbook with bank and credit card transaction data in a sheet called "All Transactions" with the following columns:
+• Column A: Account (e.g., "HKD Current Account", "HKD Savings", "HSBC Visa Signature (...)", "HSBC Red Credit Card (...)")
+• Column B: Date
+• Column C: Transaction Details
+• Column D: Deposit (positive amounts)
+• Column E: Withdrawal (positive amounts)
+• Column F: Amount (positive for deposits, negative for withdrawals)
+• Column G: Balance
+• Column H: Currency (e.g., HKD)
+• Column I: Source File
+
+Request: Create a "Summary" sheet with two formula-based summary tables:
+
+Table 1: Credit Card Transactions Summary
+• Exclude card payment transactions (e.g., "IFS PAYMENT - THANK YOU") — these are payments, not spending
+• Categories to include: Adjustment, Apple, DCC Fees, Dining, Entertainment, Groceries, Home/Shopping, Instalment, Instalment Fee, Medical/Dental, Mobile, Software/Subscription, Tax Payment, Transfer/Other
+• Columns: Monthly breakdown (In/Out/Net for each month) + Total columns
+• Months: one column group per month present in the data (YYYY-MM)
+
+Table 2: Bank Account Transactions Summary
+• Categories to include: Opening Balance (at top), Salary, Interest, Car Loan, Credit Payment, Entertainment, Government, Home/Shopping, Insurance, Investment, Management Fee, Octopus, Rent, Standing Order, Transfer/Other, Utilities
+• Opening Balance: Use Amount column (F) with positive values since these don't have Deposit/Withdrawal entries
+• Columns: Same monthly structure as Table 1
+
+Implementation Requirements:
+1. Add hidden helper columns in "All Transactions":
+   • Category (auto-categorize based on Transaction Details keywords)
+   • Month (YYYY-MM format from Date)
+   • IsCC (1 for credit cards, 0 for bank accounts — based on Account name containing "Visa" or "Credit Card")
+2. Use SUMIFS formulas in Summary tables referencing the helper columns
+3. Formatting: Bold headers, borders, color-coded headers (blue for CC, green for Bank), yellow total rows, number format with thousands separator
