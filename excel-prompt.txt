@@ -1,33 +1,56 @@
-Context: I have an Excel workbook with bank and credit card transaction data in a sheet called "All Transactions" with the following columns:
-• Column A: Account (e.g., "HKD Current Account", "HKD Savings", "HSBC Visa Signature (...)", "HSBC Red Credit Card (...)")
-• Column B: Date
-• Column C: Transaction Details
-• Column D: Deposit (positive amounts)
-• Column E: Withdrawal (positive amounts)
-• Column F: Amount (positive for deposits, negative for withdrawals)
-• Column G: Balance
-• Column H: Currency (e.g., HKD)
-• Column I: Source File
+Context: I have an Excel workbook with transaction data in a sheet called "All Transactions".
 
-Request: Create a "Summary" sheet with two formula-based summary tables:
+Columns:
+A Account
+B Date
+C Transaction Details
+D Deposit
+E Withdrawal
+F Amount
+G Balance
+H Currency
+I Source File
+
+Create / rebuild a "Summary" sheet with 3 formula-based monthly summary tables.
+
+General requirements:
+- Add hidden helper columns in "All Transactions":
+  J Category
+  K Month = YYYY-MM
+  L IsCC
+  M IsMortgage
+  N Mortgage Principal
+  O Mortgage Interest
+- Use live formulas, primarily SUMIFS, referencing helper columns.
+- Months should be one group per month present in the data.
+- Each month group should have In / Out / Net columns.
+- Add Total In / Total Out / Total Net columns.
+- Format with bold headers, borders, thousands separator, yellow total rows.
+- Use blue headers for credit cards, green for bank accounts, purple for mortgage.
 
 Table 1: Credit Card Transactions Summary
-• Exclude card payment transactions (e.g., "THANK YOU") — these are payments, not spending
-• Categories to include: Adjustment, Apple, DCC Fees, Dining, Entertainment, Groceries, Home/Shopping, Instalment, Instalment Fee, Medical/Dental, Mobile, Software/Subscription, Tax Payment, Transfer/Other
-• Columns: Monthly breakdown (In/Out/Net for each month) + Total columns
-• Months: one column group per month present in the data (YYYY-MM)
+- Include categories:
+  Adjustment, Apple, DCC Fees, Dining, Entertainment, Groceries, Home/Shopping, Instalment, Instalment Fee, Medical/Dental, Mobile, Software/Subscription, Tax Payment, Transfer/Other
+- IsCC = 1 when Account contains Visa, Credit Card, CLEAR CARD, or CARD.
+- Exclude card payment transactions such as THANK YOU, PAID BY AUTOPAY, PAYMENT.
+- Summarize by Category + Month.
 
 Table 2: Bank Account Transactions Summary
-• Categories to include: Opening Balance (at top), Salary, Interest, Car Loan, Credit Payment, Entertainment, Government, Home/Shopping, Insurance, Investment, Management Fee, Octopus, Rent, Standing Order, Transfer/Other, Utilities
-• Map "CITIBANK EUROPE PLC" to Category "Claims Payout"
-• Map Alipay transfers (name + A852-… reference in Transaction Details) to Category "Alipay"
-• Opening Balance: Use Amount column (F) with positive values since these don't have Deposit/Withdrawal entries
-• Columns: Same monthly structure as Table 1
+- Include categories:
+  Opening Balance, Salary, Interest, Claims Payout, Alipay, Car Loan, Credit Payment, Entertainment, Government, Home/Shopping, Insurance, Investment, Management Fee, Octopus, Rent, Standing Order, Transfer/Other, Utilities
+- IsCC = 0 and IsMortgage = 0.
+- Map "CITIBANK EUROPE PLC" to Claims Payout.
+- Map Alipay transfers containing name + A852 reference to Alipay.
+- Opening Balance should use Amount column F positive values because Deposit / Withdrawal may be blank.
+- Exclude all mortgage payments from mortgage statement in bank summary.
 
-Implementation Requirements:
-1. Add hidden helper columns in "All Transactions":
-   • Category (auto-categorize based on Transaction Details keywords)
-   • Month (YYYY-MM format from Date)
-   • IsCC (1 for credit cards, 0 for bank accounts — based on Account name containing "Visa" or "Credit Card")
-2. Use SUMIFS formulas in Summary tables referencing the helper columns
-3. Formatting: Bold headers, borders, color-coded headers (blue for CC, green for Bank), yellow total rows, number format with thousands separator
+Table 3: Mortgage Transactions Summary
+- Include only:
+  Principal
+  Interest
+- Use IsMortgage = 1.
+- Identify mortgage rows by Account containing Mortgage or Transaction Details containing mortgage loan references (e.g. loan number / 支付貸款).
+- Parse principal and interest from mortgage account Transaction Details when available.
+- If principal / interest are missing or zero, infer principal from mortgage balance change.
+- For bank-only mortgage payments with no matching mortgage account row on the same date, allocate payment using the latest known principal / interest ratio.
+- Avoid double-counting when both bank payment row and mortgage account row exist on the same date.

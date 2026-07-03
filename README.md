@@ -123,7 +123,17 @@ Citi Citigold eStatements, standalone Citi credit card PDFs, and Citi mortgage s
 
 ## Excel summary sheets
 
-`excel-prompt.txt` is a ready-made prompt for Cursor (or similar) to add formula-based **Summary** sheets to the exported workbook — monthly credit card and bank account breakdowns by category. Open the latest `output/transactions_*.xlsx`, paste the prompt, and let the assistant build the helper columns and `SUMIFS` tables.
+`excel-prompt.txt` is a ready-made prompt for Cursor (or similar) to add formula-based **Summary** sheets to the exported workbook. It builds three monthly breakdown tables from **All Transactions**:
+
+| Table | Scope | Header colour |
+|-------|--------|---------------|
+| **Credit Card** | Spending by category (excludes card payments like THANK YOU) | Blue |
+| **Bank Account** | Cheque/savings activity by category (excludes mortgage rows) | Green |
+| **Mortgage** | Principal vs interest split (Citi loan statement + linked bank payments) | Purple |
+
+The prompt adds hidden helper columns (`Category`, `Month`, `IsCC`, `IsMortgage`, principal/interest) and uses `SUMIFS` formulas with In / Out / Net columns per month.
+
+**Workflow:** open the latest `output/transactions_*.xlsx`, paste the contents of `excel-prompt.txt`, and let the assistant build the sheets. Use generic category-mapping patterns only — do not commit real names, account numbers, or transaction references to the prompt file.
 
 ## CLI options
 
@@ -166,6 +176,7 @@ This tool runs entirely on your machine. Nothing is uploaded anywhere.
 - `statements/` — raw PDFs and CSVs contain account numbers and transactions
 - `output/` — parsed Excel files contain the same data
 - `.env` — may hold your eStatement PDF password
+- Personal identifiers in `excel-prompt.txt` — use generic mapping patterns; keep your own name/account references in a local copy only
 
 These paths are listed in `.gitignore`. Before pushing to a remote, run `git status` and confirm no statement files are staged.
 
