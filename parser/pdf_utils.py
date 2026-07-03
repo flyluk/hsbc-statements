@@ -1,4 +1,4 @@
-"""Open HSBC PDFs, decrypting with an empty password when needed."""
+"""Open statement PDFs, decrypting with an empty password when needed."""
 
 from __future__ import annotations
 
@@ -29,7 +29,8 @@ def prepare_pdf_path(source: Path, password: str | None = None) -> tuple[Path, P
         if password:
             raise ValueError(f"Could not decrypt {source.name} — check your eStatement password")
         raise ValueError(
-            f"{source.name} is password-protected — use --password or set HSBC_ESTMT_PASSWORD in .env"
+            f"{source.name} is password-protected — use --password or set "
+            "HSBC_ESTMT_PASSWORD / CITI_ESTMT_PASSWORD in .env"
         )
 
     writer = PdfWriter()

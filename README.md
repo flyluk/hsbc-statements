@@ -1,6 +1,6 @@
-# HSBC HK Statement Extractor
+# HSBC & Citi HK Statement Extractor
 
-Convert HSBC Hong Kong bank and credit card statements (PDF or CSV) into a single Excel workbook.
+Convert HSBC and Citi Hong Kong bank, credit card, and loan statements (PDF or CSV) into a single Excel workbook.
 
 No browser automation, login, or OTP — you download statements yourself from [HSBC Online Banking](https://www.hsbc.com.hk/) or from eStatement email attachments, then run one local command.
 
@@ -21,7 +21,7 @@ source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Drop PDF or CSV files into `statements/`, then:
+Drop PDF or CSV files into `statements/hsbc/` or `statements/citi/`, then:
 
 ```bash
 python extract.py
@@ -33,20 +33,26 @@ Open the latest file in `output/` (e.g. `output/transactions_20260702_194533.xls
 
 ```
 hsbc-statements/
-├── statements/     ← drop PDF or CSV files here (not committed to git)
+├── statements/
+│   ├── hsbc/       ← HSBC PDF or CSV files
+│   └── citi/       ← Citi PDF files (eStatement, credit card, loan)
 ├── output/         ← Excel output (not committed to git)
 ├── processed/      ← optional archive after successful parse
+│   ├── hsbc/
+│   └── citi/
 ├── extract.py
 ├── excel-prompt.txt
 ├── parser/
+│   ├── citi/       ← Citi-specific parsers
+│   └── ...
 └── requirements.txt
 ```
 
 ## Monthly workflow
 
-1. Log in to HSBC Online Banking (or open an eStatement email)
-2. Download the monthly **eStatement PDF** or a **CSV** export from transaction search
-3. Copy files into `statements/`
+1. Log in to HSBC or Citi online banking (or open an eStatement email)
+2. Download monthly **eStatement PDFs** or a **CSV** export (HSBC transaction search)
+3. Copy HSBC files into `statements/hsbc/` and Citi files into `statements/citi/`
 4. Activate the venv and run `python extract.py`
 5. Open the timestamped workbook in `output/`
 
@@ -58,12 +64,15 @@ python extract.py --move-processed
 
 ## Supported files
 
-| Format | Source |
-|--------|--------|
-| **PDF** | Monthly eStatement (plain or password-protected) |
-| **CSV** | Transaction export from HSBC Online Banking |
+| Bank | Format | Source |
+|------|--------|--------|
+| **HSBC** | PDF | Monthly eStatement (plain or password-protected) |
+| **HSBC** | CSV | Transaction export from HSBC Online Banking |
+| **Citi** | PDF | Citigold consolidated eStatement (bank accounts) |
+| **Citi** | PDF | Credit card eStatement |
+| **Citi** | PDF | Mortgage / loan statement |
 
-Supported PDF layouts include account activity statements, eStatement transaction history, and credit card statements.
+HSBC PDF layouts include account activity statements, eStatement transaction history, and credit card statements.
 
 ## Password-protected PDFs
 
@@ -73,7 +82,7 @@ Email eStatement attachments often are. Set a password only when needed:
 
 ```bash
 cp .env.example .env
-# edit .env and set HSBC_ESTMT_PASSWORD=...
+# edit .env and set HSBC_ESTMT_PASSWORD=... and/or CITI_ESTMT_PASSWORD=...
 ```
 
 Or pass it on the command line (avoid shell history on shared machines):
@@ -106,9 +115,11 @@ Each run writes a timestamped workbook to `output/transactions_YYYYMMDD_HHMMSS.x
 | Amount | Signed value — positive for credits, negative for debits |
 | Balance | Running balance where available |
 | CCY | Currency |
-| Source File | Original PDF or CSV filename |
+| Source File | Bank subfolder and original filename (e.g. `citi/eStatement_January.pdf`) |
 
-Credit card rows are normalized to the same schema as bank accounts. On **All Transactions**, the earliest B/F Balance row per account has `Amount` set from `Balance`.
+Credit card rows are normalized to the same schema as bank accounts. On **All Transactions**, the earliest opening-balance row per account (`B/F BALANCE`, `承上結餘`, or `BALANCE FORWARD`) has `Amount` set from `Balance`.
+
+Citi Citigold eStatements, standalone Citi credit card PDFs, and Citi mortgage statements are auto-detected and merged into the same workbook as HSBC data. CSV import is supported for HSBC only.
 
 ## Excel summary sheets
 
@@ -122,17 +133,19 @@ python extract.py --help
 
 | Option | Description |
 |--------|-------------|
-| `--input DIR` | Input folder (default: `statements/`) |
+| `--input DIR` | Root folder with `hsbc/` and `citi/` subfolders (default: `statements/`) |
 | `--output FILE` | Output Excel path (default: `output/transactions_YYYYMMDD_HHMMSS.xlsx`) |
-| `--password` | PDF password (or use `HSBC_ESTMT_PASSWORD` in `.env`) |
-| `--move-processed` | Move parsed files to `processed/` |
+| `--password` | PDF password (or use `HSBC_ESTMT_PASSWORD` / `CITI_ESTMT_PASSWORD` in `.env`) |
+| `--move-processed` | Move parsed files to `processed/hsbc/` or `processed/citi/` |
 | `--export-statements` | Add one sheet per source statement file (default: skip) |
 
 Processing prints elapsed time per file:
 
 ```
-Processing 2026-01-03_Statement.pdf...
+Processing [hsbc] 2026-01-03_Statement.pdf...
   OK (2026-01-03_Statement.pdf) — 1.2s
+Processing [citi] eStatement_January.pdf...
+  OK (eStatement_January.pdf) — 0.2s
 ```
 
 ## Troubleshooting
@@ -141,8 +154,8 @@ Processing 2026-01-03_Statement.pdf...
 |---------|-----|
 | `pip install requirements.txt` fails | Use `pip install -r requirements.txt` (note the `-r` flag) |
 | Dependency conflict warnings after install | Create and use `.venv` as shown in Quick start — do not install into global Python |
-| `No PDF or CSV files found` | Copy statement files into `statements/` first |
-| PDF parse fails with password error | Set `HSBC_ESTMT_PASSWORD` in `.env` or pass `--password` |
+| `No PDF or CSV files found` | Copy statements into `statements/hsbc/` or `statements/citi/` |
+| PDF parse fails with password error | Set `HSBC_ESTMT_PASSWORD` / `CITI_ESTMT_PASSWORD` in `.env` or pass `--password` |
 
 ## Privacy and security
 

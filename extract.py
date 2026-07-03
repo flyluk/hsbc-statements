@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract HSBC HK statements from a drop folder into Excel."""
+"""Extract HSBC and Citi HK statements from bank subfolders into Excel."""
 
 from __future__ import annotations
 
@@ -14,16 +14,17 @@ from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
 
-from parser.parse_pdf import parse_pdf
 from parser.accounts import normalize_account_name
+from parser.citi.parse_pdf import parse_pdf as parse_citi_pdf
+from parser.parse_pdf import parse_pdf as parse_hsbc_pdf
 
 ROOT = Path(__file__).resolve().parent
 STATEMENTS_DIR = ROOT / "statements"
 OUTPUT_DIR = ROOT / "output"
 PROCESSED_DIR = ROOT / "processed"
+BANK_FOLDERS = ("hsbc", "citi")
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv"}
-
 STANDARD_COLUMNS = [
     "Account",
     "Date",
@@ -133,29 +134,32 @@ def normalize_accounts(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def load_csv(path: Path) -> pd.DataFrame:
+def load_csv(path: Path, bank: str = "hsbc") -> pd.DataFrame:
     df = pd.read_csv(path)
     df = normalize_csv_columns(df)
     if "Account" not in df.columns:
         df["Account"] = path.stem
     if "Source File" not in df.columns:
-        df["Source File"] = path.name
+        df["Source File"] = f"{bank}/{path.name}"
+    return normalize_transaction_frame(normalize_accounts(df))
+
+def load_pdf(path: Path, bank: str, password: str | None) -> pd.DataFrame:
+    parser = parse_citi_pdf if bank == "citi" else parse_hsbc_pdf
+    df = parser(str(path), password)
+    df["Source File"] = f"{bank}/{path.name}"
     return normalize_transaction_frame(normalize_accounts(df))
 
 
-def load_pdf(path: Path, password: str | None) -> pd.DataFrame:
-    df = parse_pdf(str(path), password)
-    df["Source File"] = path.name
-    return normalize_transaction_frame(normalize_accounts(df))
-
-
-def collect_files(input_dir: Path) -> list[Path]:
-    files = []
-    for path in sorted(input_dir.iterdir()):
-        if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS:
-            files.append(path)
+def collect_files(input_dir: Path) -> list[tuple[Path, str]]:
+    files: list[tuple[Path, str]] = []
+    for bank in BANK_FOLDERS:
+        bank_dir = input_dir / bank
+        if not bank_dir.is_dir():
+            continue
+        for path in sorted(bank_dir.iterdir()):
+            if path.is_file() and path.suffix.lower() in SUPPORTED_EXTENSIONS:
+                files.append((path, bank))
     return files
-
 
 def _unique_sheet_name(name: str, used: set[str]) -> str:
     for char in (":", "\\", "/", "?", "*", "[", "]"):
@@ -175,7 +179,10 @@ def _fill_earliest_bf_amounts(df: pd.DataFrame) -> pd.DataFrame:
     """Set Amount from Balance on the earliest B/F BALANCE row per account."""
     df = df.copy()
     bf_mask = df["Transaction Details"].astype(str).str.contains(
-        r"B/F\s*BALANCE", case=False, na=False, regex=True
+        r"B/F\s*BALANCE|承上結餘|BALANCE\s*FORWARD",
+        case=False,
+        na=False,
+        regex=True,
     )
     if not bf_mask.any():
         return df
@@ -257,23 +264,23 @@ def timestamped_output_path() -> Path:
     return OUTPUT_DIR / f"transactions_{stamp}.xlsx"
 
 
-def move_to_processed(path: Path) -> None:
-    PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
-    destination = PROCESSED_DIR / path.name
+def move_to_processed(path: Path, bank: str) -> None:
+    dest_dir = PROCESSED_DIR / bank
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    destination = dest_dir / path.name
     if destination.exists():
         destination.unlink()
     shutil.move(str(path), str(destination))
 
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Convert HSBC HK statements (PDF/CSV) dropped in statements/ into Excel."
+        description="Convert HSBC and Citi HK statements (PDF/CSV) into Excel."
     )
     parser.add_argument(
         "--input",
         type=Path,
         default=STATEMENTS_DIR,
-        help=f"Folder containing statement files (default: {STATEMENTS_DIR})",
+        help=f"Folder containing hsbc/ and citi/ subfolders (default: {STATEMENTS_DIR})",
     )
     parser.add_argument(
         "--output",
@@ -303,33 +310,39 @@ def main() -> int:
     args = parse_args()
 
     input_dir = args.input
-    password = args.password or os.environ.get("HSBC_ESTMT_PASSWORD")
+    hsbc_password = args.password or os.environ.get("HSBC_ESTMT_PASSWORD")
+    citi_password = args.password or os.environ.get("CITI_ESTMT_PASSWORD") or hsbc_password
     output_path = args.output or timestamped_output_path()
 
     input_dir.mkdir(parents=True, exist_ok=True)
+    for bank in BANK_FOLDERS:
+        (input_dir / bank).mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     files = collect_files(input_dir)
     if not files:
-        print(f"No PDF or CSV files found in {input_dir}")
-        print("Drop your HSBC statements there and run again.")
+        print(f"No PDF or CSV files found in {input_dir}/hsbc or {input_dir}/citi")
+        print("Drop statements into the matching subfolder and run again.")
         return 1
 
     frames: list[pd.DataFrame] = []
     errors: list[str] = []
 
-    for path in files:
-        print(f"Processing {path.name}...")
+    for path, bank in files:
+        password = citi_password if bank == "citi" else hsbc_password
+        print(f"Processing [{bank}] {path.name}...")
         started = time.perf_counter()
         try:
             if path.suffix.lower() == ".csv":
-                frames.append(load_csv(path))
+                if bank != "hsbc":
+                    raise ValueError("CSV import is only supported for HSBC exports")
+                frames.append(load_csv(path, bank))
             else:
-                frames.append(load_pdf(path, password))
+                frames.append(load_pdf(path, bank, password))
             elapsed = time.perf_counter() - started
             print(f"  OK ({path.name}) — {elapsed:.1f}s")
             if args.move_processed:
-                move_to_processed(path)
+                move_to_processed(path, bank)
         except Exception as exc:
             msg = f"{path.name}: {exc}"
             errors.append(msg)

@@ -12,7 +12,7 @@ Context: I have an Excel workbook with bank and credit card transaction data in 
 Request: Create a "Summary" sheet with two formula-based summary tables:
 
 Table 1: Credit Card Transactions Summary
-• Exclude card payment transactions (e.g., "IFS PAYMENT - THANK YOU") — these are payments, not spending
+• Exclude card payment transactions (e.g., "THANK YOU") — these are payments, not spending
 • Categories to include: Adjustment, Apple, DCC Fees, Dining, Entertainment, Groceries, Home/Shopping, Instalment, Instalment Fee, Medical/Dental, Mobile, Software/Subscription, Tax Payment, Transfer/Other
 • Columns: Monthly breakdown (In/Out/Net for each month) + Total columns
 • Months: one column group per month present in the data (YYYY-MM)
