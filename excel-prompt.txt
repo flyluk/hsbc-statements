@@ -43,6 +43,9 @@ Table 2: Bank Account Transactions Summary
 - Map Alipay transfers containing name + A852 reference to Alipay.
 - Opening Balance should use Amount column F positive values because Deposit / Withdrawal may be blank.
 - Exclude all mortgage payments from mortgage statement in bank summary.
+- Should count mortgage payments out flow in bank accounts summary
+- Other bank categories use Deposit only for "In Flow"
+- Other bank categories use Deposit only for "In Flow"
 
 Table 3: Mortgage Transactions Summary
 - Include only:

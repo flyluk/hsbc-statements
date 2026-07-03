@@ -128,10 +128,10 @@ Citi Citigold eStatements, standalone Citi credit card PDFs, and Citi mortgage s
 | Table | Scope | Header colour |
 |-------|--------|---------------|
 | **Credit Card** | Spending by category (excludes card payments like THANK YOU) | Blue |
-| **Bank Account** | Cheque/savings activity by category (excludes mortgage rows) | Green |
+| **Bank Account** | Cheque/savings by category — mortgage outflows from bank rows; other categories use **Deposit** for inflow | Green |
 | **Mortgage** | Principal vs interest split (Citi loan statement + linked bank payments) | Purple |
 
-The prompt adds hidden helper columns (`Category`, `Month`, `IsCC`, `IsMortgage`, principal/interest) and uses `SUMIFS` formulas with In / Out / Net columns per month.
+The prompt adds hidden helper columns (`Category`, `Month`, `IsCC`, `IsMortgage`, principal/interest) and uses `SUMIFS` formulas with In / Out / Net columns per month. Bank summary rules: exclude Citi mortgage-statement rows from Table 2, but still count mortgage **payments** made from bank accounts as outflow; use the **Deposit** column for inflow on non-mortgage categories (opening balance uses signed **Amount**).
 
 **Workflow:** open the latest `output/transactions_*.xlsx`, paste the contents of `excel-prompt.txt`, and let the assistant build the sheets. Use generic category-mapping patterns only — do not commit real names, account numbers, or transaction references to the prompt file.
 
