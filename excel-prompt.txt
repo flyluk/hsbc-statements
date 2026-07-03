@@ -20,7 +20,7 @@ Table 1: Credit Card Transactions Summary
 Table 2: Bank Account Transactions Summary
 • Categories to include: Opening Balance (at top), Salary, Interest, Car Loan, Credit Payment, Entertainment, Government, Home/Shopping, Insurance, Investment, Management Fee, Octopus, Rent, Standing Order, Transfer/Other, Utilities
 • Map "CITIBANK EUROPE PLC" to Category "Claims Payout"
-• Map "REDACTED" to Category "Alipay"
+• Map Alipay transfers (name + A852-… reference in Transaction Details) to Category "Alipay"
 • Opening Balance: Use Amount column (F) with positive values since these don't have Deposit/Withdrawal entries
 • Columns: Same monthly structure as Table 1
 
