@@ -202,13 +202,25 @@ def _apply_date_formats(writer: pd.ExcelWriter, sheet_name: str, df: pd.DataFram
                 cell.number_format = "yyyy-mm-dd"
 
 
+def _concat_transaction_frames(frames: list[pd.DataFrame]) -> pd.DataFrame:
+    if not frames:
+        return pd.DataFrame(columns=STANDARD_COLUMNS)
+
+    cleaned: list[pd.DataFrame] = []
+    for frame in frames:
+        df = frame.reindex(columns=STANDARD_COLUMNS).dropna(axis=1, how="all")
+        cleaned.append(df)
+
+    return pd.concat(cleaned, ignore_index=True, sort=False).reindex(columns=STANDARD_COLUMNS)
+
+
 def export_excel(
     frames: list[pd.DataFrame],
     output_path: Path,
     *,
     export_statements: bool = False,
 ) -> None:
-    combined = _date_only_columns(pd.concat(frames, ignore_index=True))
+    combined = _date_only_columns(_concat_transaction_frames(frames))
     sort_cols = [col for col in ("Date", "Account") if col in combined.columns]
     if sort_cols:
         combined = combined.sort_values(sort_cols, na_position="last")
