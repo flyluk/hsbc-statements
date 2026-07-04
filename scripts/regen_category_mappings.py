@@ -201,15 +201,6 @@ def category_summary(df: pd.DataFrame) -> dict[str, dict]:
             "signatures": category_signatures(df, cat),
         }
     return summaries
-    sub = df[df["Category"] == category]
-    counts = Counter()
-    for detail in sub["Transaction Details"].astype(str):
-        text = detail.upper().strip()
-        text = re.sub(r"\d{4,}", "…", text)
-        text = re.sub(r"LUK[^|]{0,30}", "…", text, flags=re.I)
-        text = re.sub(r"CHAN[^|]{0,30}", "…", text, flags=re.I)
-        counts[text[:70]] += 1
-    return [item for item, _ in counts.most_common(limit)]
 
 
 def build_config(workbook: Path, df: pd.DataFrame) -> dict:

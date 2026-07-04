@@ -15,6 +15,7 @@ import pandas as pd
 from dotenv import load_dotenv
 
 from parser.accounts import normalize_account_name
+from parser.categorize import apply_categories
 from parser.citi.parse_pdf import parse_pdf as parse_citi_pdf
 from parser.parse_pdf import parse_pdf as parse_hsbc_pdf
 
@@ -22,6 +23,7 @@ ROOT = Path(__file__).resolve().parent
 STATEMENTS_DIR = ROOT / "statements"
 OUTPUT_DIR = ROOT / "output"
 PROCESSED_DIR = ROOT / "processed"
+CATEGORY_MAPPINGS_PATH = ROOT / "category-mappings.yaml"
 BANK_FOLDERS = ("hsbc", "citi")
 
 SUPPORTED_EXTENSIONS = {".pdf", ".csv"}
@@ -226,6 +228,8 @@ def export_excel(
     output_path: Path,
     *,
     export_statements: bool = False,
+    categorize: bool = True,
+    mappings_path: Path | None = None,
 ) -> None:
     combined = _date_only_columns(_concat_transaction_frames(frames))
     sort_cols = [col for col in ("Date", "Account") if col in combined.columns]
@@ -243,6 +247,11 @@ def export_excel(
     ) as writer:
         all_name = _unique_sheet_name("All Transactions", used_sheet_names)
         all_transactions = _fill_earliest_bf_amounts(combined)
+        if categorize:
+            all_transactions = apply_categories(
+                all_transactions,
+                mappings_path or CATEGORY_MAPPINGS_PATH,
+            )
         all_transactions.to_excel(writer, sheet_name=all_name, index=False)
         _apply_date_formats(writer, all_name, all_transactions)
 
@@ -302,6 +311,17 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Add one sheet per source statement file (default: skip)",
     )
+    parser.add_argument(
+        "--no-categorize",
+        action="store_true",
+        help="Skip Category/helper columns on All Transactions (default: categorize)",
+    )
+    parser.add_argument(
+        "--mappings",
+        type=Path,
+        default=CATEGORY_MAPPINGS_PATH,
+        help=f"Category rules YAML (default: {CATEGORY_MAPPINGS_PATH})",
+    )
     return parser.parse_args()
 
 
@@ -354,7 +374,13 @@ def main() -> int:
             print(f"  - {err}")
         return 1
 
-    export_excel(frames, output_path, export_statements=args.export_statements)
+    export_excel(
+        frames,
+        output_path,
+        export_statements=args.export_statements,
+        categorize=not args.no_categorize,
+        mappings_path=args.mappings,
+    )
     print(f"\nSaved {len(frames)} file(s) to {output_path}")
 
     if errors:

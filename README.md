@@ -120,6 +120,18 @@ Each run writes a timestamped workbook to `output/transactions_YYYYMMDD_HHMMSS.x
 | CCY | Currency |
 | Source File | Bank subfolder and original filename (e.g. `citi/eStatement_January.pdf`) |
 
+On **All Transactions**, `extract.py` also adds helper columns from `category-mappings.yaml`:
+
+| Column | Description |
+|--------|-------------|
+| Category | First matching rule (top-to-bottom); default `Transfer/Other` |
+| Month | `YYYY-MM` from Date |
+| IsCC | `1` for credit card accounts |
+| IsMortgage | `1` for mortgage statement rows and linked mortgage payments |
+| Mortgage Principal / Mortgage Interest | Parsed from Citi mortgage payment descriptions when present |
+
+Per-account sheets keep the base columns only (no Category). Use `--no-categorize` to skip helper columns.
+
 Credit card rows are normalized to the same schema as bank accounts. On **All Transactions**, the earliest opening-balance row per account (`B/F BALANCE`, `承上結餘`, or `BALANCE FORWARD`) has `Amount` set from `Balance`.
 
 Citi Citigold eStatements, standalone Citi credit card PDFs, and Citi mortgage statements are auto-detected and merged into the same workbook as HSBC data. CSV import is supported for HSBC only.
@@ -134,15 +146,15 @@ Citi Citigold eStatements, standalone Citi credit card PDFs, and Citi mortgage s
 | **Bank Account** | Cheque/savings by category — mortgage outflows from bank rows; other categories use **Deposit** for inflow | Green |
 | **Mortgage** | Principal vs interest split (Citi loan statement + linked bank payments) | Purple |
 
-The prompt adds hidden helper columns (`Category`, `Month`, `IsCC`, `IsMortgage`, principal/interest) and uses `SUMIFS` formulas with In / Out / Net columns per month. Bank summary rules: exclude Citi mortgage-statement rows from Table 2, but still count mortgage **payments** made from bank accounts as outflow; use the **Deposit** column for inflow on non-mortgage categories (opening balance uses signed **Amount**).
+The prompt adds **Summary** sheets with `SUMIFS` formulas. If you exported with the default categorization, helper columns on **All Transactions** are already filled — you can ask the assistant to build only the three Summary tables.
 
 **Workflow:** open the latest `output/transactions_*.xlsx`, paste the contents of `excel-prompt.txt`, and let the assistant build the sheets. Use generic category-mapping patterns only — do not commit real names, account numbers, or transaction references to the prompt file.
 
 ### Category mappings
 
-`category-mappings.yaml` documents how **Category** is assigned in the Summary workbook — match rules, keyword frequencies, and redacted transaction signatures per category (39 categories in the latest export).
+`category-mappings.yaml` is the source of truth for categorization. `extract.py` loads it on every export (see helper columns above). The file also documents keyword frequencies and redacted transaction signatures per category (39 categories in the latest export).
 
-After updating the Excel **All Transactions** sheet, regenerate the mapping file:
+After tuning categories in Excel, regenerate the mapping file so rules stay in sync:
 
 ```bash
 python scripts/regen_category_mappings.py
@@ -165,6 +177,8 @@ python extract.py --help
 | `--password` | PDF password (or use `HSBC_ESTMT_PASSWORD` / `CITI_ESTMT_PASSWORD` in `.env`) |
 | `--move-processed` | Move parsed files to `processed/hsbc/` or `processed/citi/` |
 | `--export-statements` | Add one sheet per source statement file (default: skip) |
+| `--no-categorize` | Skip Category/helper columns on All Transactions |
+| `--mappings FILE` | Category rules YAML (default: `category-mappings.yaml`) |
 
 Processing prints elapsed time per file:
 
