@@ -134,6 +134,7 @@ rules:
     - 退回發出支票
     transaction_details_regex_any:
     - ^CASH$
+    - ^\d{6,}\s+港元$
 - category: Transport/Tolls
   priority: 21
   match:
@@ -175,6 +176,7 @@ rules:
     - CINEMA
     - UTMB.WORLD
     - ASSOC OF ATHL
+    - CREDIT CARD PAYMENT
 - category: Alipay
   priority: 30
   match:
@@ -209,7 +211,6 @@ rules:
 - category: Octopus
   priority: 35
   match:
-    is_cc: 0
     transaction_details_contains_any:
     - OCTOPUS
     transaction_details_regex_any:
@@ -225,9 +226,9 @@ rules:
 - category: Government
   priority: 37
   match:
-    is_cc: 0
     transaction_details_contains_any:
     - RATING AND VALUATION
+    - TRAFFIC TICKETS
 - category: Interest
   priority: 38
   match:
@@ -261,6 +262,13 @@ rules:
     - MBKFT\d
     - NC\d+\(
     - N\d{10,}\(
+- category: VTC
+  priority: 41.5
+  match:
+    is_cc: 0
+    is_mortgage: 0
+    transaction_details_regex_any:
+    - HSBC ITS\(A\)L[-_]FRMT
 - category: Internal Transfer
   priority: 42
   match:
@@ -269,12 +277,19 @@ rules:
     transaction_details_contains_any:
     - 存入本地匯款
     - CR TO
-    - HSBC ITS
     - 流動銀行轉帳
     transaction_details_regex_any:
     - WKNFT\d
     - N\d{10,}\(
     - NC\d+\(
+- category: Utilities
+  priority: 42.9
+  match:
+    transaction_details_contains_any:
+    - CLP POWER
+    - DSG ENERGY
+    - APC COLL-WATER
+    - HKBN
 - category: Personal Transfer
   priority: 43
   match:
@@ -283,17 +298,8 @@ rules:
     - 轉數快
     - CURSOR
     transaction_details_regex_any:
-    - HC\d{10,}
+    - HC[A-Z0-9]{10,}
     - \*{2,}
-- category: Utilities
-  priority: 44
-  match:
-    is_cc: 0
-    transaction_details_contains_any:
-    - CLP POWER
-    - DSG ENERGY
-    - APC COLL-WATER
-    - HKBN
 - category: Software/Subscription
   priority: 50
   match:
@@ -312,6 +318,11 @@ rules:
     - AMAZON WEB SERVICES
     - PDFE.COM
     - CURSOR
+    - pdfguru
+    - Nintendo
+    - SCMP
+    - STP*V*
+    - Google AR
 - category: Groceries
   priority: 51
   match:
@@ -360,6 +371,32 @@ rules:
     - SUN THAI
     - SICHUAN HOUSE
     - PEKING GARDEN
+    - CUPPING ROOM
+    - ELEPHANT GROUNDS
+    - Harbourside Grill
+    - NHA TRANG
+    - VIETMIAM
+    - CHOI FOOK
+    - PACIFIC COFFEE
+    - NOC COFFEE
+    - KAM LUNG MOTORS
+    - THE SUNSET BAY
+    - ART OF CANTON
+    - ORERYUSHIO
+    - XIHE YA YUAN
+    - TAI HING
+    - FOODHALL
+    - UMIMACHIDON
+    - PHI COFFEE
+    - PANCAKE
+    - JASMINE (
+    - GOOBNE
+    - THE COFFEE ACADEMICS
+    - OUTBACK STEAKHOUSE
+    - PUTIEN
+    - TONKICHI
+    - FAT KEE SEAFOOD
+    - KWAN CHOI KEE
 - category: Home/Shopping
   priority: 53
   match:
@@ -374,6 +411,20 @@ rules:
     - BEST BUY ELECTRIC
     - CERAMIC
     - CAM2 LIMITED
+    - POLO RALPH LAUREN
+    - QFPay*
+    - Sino Trend
+    - OR TA LIMITED
+    - LUCKY TIDE
+    - TIN SHING MARBLE
+    - PLC LOCKS
+    - HING FAT FLOWER
+    - JAPAN HOME
+    - LA CREATION
+    - UNICORN STORES
+    - SP STEELCASE
+    - WATSON'S
+    - China Elegant
 - category: Transfer/Other
   priority: 999
   match:
@@ -862,7 +913,7 @@ categories:
     - pattern: 存入利息 (MAY)
       count: 1
   Internal Transfer:
-    count: 61
+    count: 55
     is_cc:
     - 0
     is_mortgage:
@@ -874,7 +925,6 @@ categories:
       存入本地匯款: 14
       WKNFT… (wire transfer in): 14
       CR TO: 13
-      HSBC ITS: 6
       MBKFT: 1
       MBKFT… (mobile banking): 1
     signatures:
@@ -882,8 +932,6 @@ categories:
       count: 23
     - pattern: 存入本地匯款 WKNFT…A… MR …
       count: 14
-    - pattern: HSBC ITS(A)L-FRMT …
-      count: 6
     - pattern: …, … HC… R 19APR
       count: 2
     - pattern: CR TO 143-…-838 NC…(26DEC25)
@@ -1204,6 +1252,17 @@ categories:
       count: 1
     - pattern: TRIP COM
       count: 1
+  VTC:
+    count: 6
+    is_cc:
+    - 0
+    is_mortgage:
+    - 0
+    keyword_hits:
+      HSBC ITS: 6
+    signatures:
+    - pattern: HSBC ITS(A)L-FRMT …
+      count: 6
   Utilities:
     count: 8
     is_cc:
