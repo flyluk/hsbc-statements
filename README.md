@@ -42,6 +42,9 @@ hsbc-statements/
 │   └── citi/
 ├── extract.py
 ├── excel-prompt.txt
+├── category-mappings.yaml
+├── scripts/
+│   └── regen_category_mappings.py
 ├── parser/
 │   ├── citi/       ← Citi-specific parsers
 │   └── ...
@@ -135,6 +138,20 @@ The prompt adds hidden helper columns (`Category`, `Month`, `IsCC`, `IsMortgage`
 
 **Workflow:** open the latest `output/transactions_*.xlsx`, paste the contents of `excel-prompt.txt`, and let the assistant build the sheets. Use generic category-mapping patterns only — do not commit real names, account numbers, or transaction references to the prompt file.
 
+### Category mappings
+
+`category-mappings.yaml` documents how **Category** is assigned in the Summary workbook — match rules, keyword frequencies, and redacted transaction signatures per category (39 categories in the latest export).
+
+After updating the Excel **All Transactions** sheet, regenerate the mapping file:
+
+```bash
+python scripts/regen_category_mappings.py
+# optional: pass a specific workbook path
+python scripts/regen_category_mappings.py output/transactions_20260703_140341.xlsx
+```
+
+Review `category-mappings.yaml` before committing — signatures are redacted, but keep any personal mapping rules in a local copy only.
+
 ## CLI options
 
 ```bash
@@ -176,7 +193,7 @@ This tool runs entirely on your machine. Nothing is uploaded anywhere.
 - `statements/` — raw PDFs and CSVs contain account numbers and transactions
 - `output/` — parsed Excel files contain the same data
 - `.env` — may hold your eStatement PDF password
-- Personal identifiers in `excel-prompt.txt` — use generic mapping patterns; keep your own name/account references in a local copy only
+- Personal identifiers in `excel-prompt.txt` or `category-mappings.yaml` — use generic mapping patterns; keep your own name/account references in a local copy only
 
 These paths are listed in `.gitignore`. Before pushing to a remote, run `git status` and confirm no statement files are staged.
 
